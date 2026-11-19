@@ -1,6 +1,6 @@
 # Steam Droid — roadmapa
 
-## 0.1.0 — Foundation (bieżąca)
+## 0.1.0 — Foundation (ukończona)
 - [x] Bazowy projekt Android / Kotlin / Compose.
 - [x] Ciemny interfejs i nawigacja.
 - [x] Odczyt informacji o urządzeniu.
@@ -9,11 +9,14 @@
 - [x] CI budujące debug APK.
 - [ ] Test kompilacji na fizycznym REDMAGIC 7.
 
-## 0.2.0 — PC Connect
-- [ ] Ręczne zapisanie nazwy komputera i notatek o sieci.
-- [ ] Kontrola obecności Steam Link.
-- [ ] Ekran diagnostyczny sieci i wskazówki dla Wi-Fi 5 GHz.
-- [ ] Lepsze wykrywanie kontrolerów Android.
+## 0.2.0 — PC Connect Core (implementacja)
+- [x] Kontrola obecności Steam Link przez Android package visibility.
+- [x] Diagnostyka aktywnego transportu sieciowego.
+- [x] Rozróżnienie aktywnej sieci, dostępu do internetu i statusu taryfowego.
+- [x] Wykrywanie fizycznych kontrolerów gamepad / joystick / D-pad przez Android InputDevice API.
+- [x] Skrót do ustawień Bluetooth i ręczne odświeżanie diagnostyki.
+- [x] Wyjaśnienie granic diagnostyki — bez pozorowania wykrycia komputera Steam.
+- [ ] Test na fizycznym REDMAGIC 7 i kontrolerach Bluetooth/USB.
 
 ## 0.3.0 — Library
 - [ ] Projekt modelu biblioteki i lokalnej bazy Room.

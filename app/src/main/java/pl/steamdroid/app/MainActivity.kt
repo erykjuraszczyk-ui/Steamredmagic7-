@@ -269,26 +269,107 @@ private fun LibraryScreen(padding: PaddingValues) {
 @Composable
 private fun ConnectScreen(padding: PaddingValues) {
     val context = LocalContext.current
+    var diagnostics by remember { mutableStateOf(DeviceDiagnostics.read(context)) }
+
     ScreenColumn(padding) {
         BrandHeader("Połącz telefon z komputerem")
+
+        SectionTitle("DIAGNOSTYKA SIECI")
+        Card(
+            colors = CardDefaults.cardColors(containerColor = SteamSurface),
+            shape = RoundedCornerShape(18.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                InfoLine("Typ połączenia", diagnostics.network.transportName)
+                InfoLine("Aktywna sieć", if (diagnostics.network.connected) "TAK" else "NIE")
+                InfoLine("Dostęp do internetu", when {
+                    diagnostics.network.internetValidated -> "POTWIERDZONY"
+                    diagnostics.network.hasInternetCapability -> "NIEPOTWIERDZONY"
+                    else -> "BRAK"
+                })
+                InfoLine(
+                    "Sieć taryfowa",
+                    diagnostics.network.isMetered?.let { if (it) "TAK" else "NIE" } ?: "NIEZNANA"
+                )
+                Text(
+                    diagnostics.network.note,
+                    color = SteamMuted,
+                    fontSize = 12.sp
+                )
+                OutlinedButton(
+                    onClick = { diagnostics = DeviceDiagnostics.read(context) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("ODŚWIEŻ DIAGNOSTYKĘ", color = SteamText)
+                }
+            }
+        }
+
+        SectionTitle("STEAM LINK")
         StatusCard(
-            title = "Status połączenia",
-            status = "NIEPOŁĄCZONO",
-            description = "Połączenie i parowanie wykonuje oficjalna aplikacja Steam Link."
+            title = "Oficjalna aplikacja Valve",
+            status = if (diagnostics.steamLinkInstalled) "ZAINSTALOWANA" else "NIEZAINSTALOWANA",
+            description = if (diagnostics.steamLinkInstalled) {
+                "Steam Link został wykryty na tym urządzeniu. Uruchom go, aby sparować telefon z komputerem."
+            } else {
+                "Nie wykryto Steam Link. Otwórz sklep Google Play, zainstaluj aplikację i wróć tutaj."
+            }
         )
         Button(
             onClick = { openSteamLink(context) },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = SteamRed)
         ) {
-            Text("OTWÓRZ STEAM LINK", fontWeight = FontWeight.Bold)
+            Text(
+                if (diagnostics.steamLinkInstalled) "URUCHOM STEAM LINK" else "ZAINSTALUJ STEAM LINK",
+                fontWeight = FontWeight.Bold
+            )
         }
+
+        SectionTitle("KONTROLERY I URZĄDZENIA WEJŚCIOWE")
+        Card(
+            colors = CardDefaults.cardColors(containerColor = SteamSurface),
+            shape = RoundedCornerShape(18.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                InfoLine("Wykryte kontrolery", diagnostics.controllers.size.toString())
+                if (diagnostics.controllers.isEmpty()) {
+                    Text(
+                        "Nie wykryto kontrolera gamepad/joystick. Sparuj kontroler Bluetooth lub podłącz go przez USB-C, a następnie odśwież diagnostykę.",
+                        color = SteamMuted,
+                        fontSize = 12.sp
+                    )
+                } else {
+                    diagnostics.controllers.forEachIndexed { index, controller ->
+                        Text(
+                            "${index + 1}. ${controller.name} — ${controller.inputType}",
+                            color = SteamText,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+                OutlinedButton(
+                    onClick = { openBluetoothSettings(context) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("USTAWIENIA BLUETOOTH", color = SteamText)
+                }
+            }
+        }
+
         SectionTitle("KONFIGURACJA KOMPUTERA")
         StepCard("1", "Uruchom Steam", "Na komputerze uruchom klienta Steam i zaloguj się na swoje konto.")
         StepCard("2", "Włącz Remote Play", "Otwórz Steam → Ustawienia → Remote Play i włącz tę funkcję.")
         StepCard("3", "Przygotuj sieć", "Połącz telefon z Wi-Fi 5 GHz. Komputer najlepiej podłącz do routera przewodem Ethernet.")
         StepCard("4", "Sparuj urządzenia", "W Steam Link wybierz komputer. Potwierdź kod PIN wyświetlony na ekranie.")
         StepCard("5", "Uruchom grę", "Wybierz grę z biblioteki Steam na komputerze i rozpocznij strumieniowanie.")
+
         OutlinedButton(
             onClick = { openWebPage(context, STEAM_LINK_HELP) },
             modifier = Modifier.fillMaxWidth()
@@ -296,7 +377,7 @@ private fun ConnectScreen(padding: PaddingValues) {
             Text("OFICJALNA POMOC STEAM LINK", color = SteamText)
         }
         Text(
-            "Uwaga: gra działa na komputerze. Telefon odbiera obraz i wysyła sterowanie — nie pobiera w ten sposób plików gry na Androida.",
+            "Diagnostyka sprawdza połączenie sieciowe telefonu i rozpoznane urządzenia wejściowe. Nie skanuje sieci lokalnej ani nie potwierdza, że komputer Steam jest osiągalny — parowanie wykonuje Steam Link.",
             color = SteamMuted,
             fontSize = 12.sp
         )
@@ -310,10 +391,10 @@ private fun SettingsScreen(padding: PaddingValues) {
         BrandHeader("Konfiguracja aplikacji")
         SectionTitle("INFORMACJE")
         StatusCard("Nazwa", "STEAM DROID", "Fanowski launcher dla urządzeń Android 13+.")
-        StatusCard("Wersja", "0.1.0 FOUNDATION", "Pierwsza wersja bazowa. Funkcje konta Steam i lokalnego uruchamiania są poza zakresem tego wydania.")
+        StatusCard("Wersja", "0.2.0 PC CONNECT CORE", "Diagnostyka sieci, kontrolerów i dostępności Steam Link. Biblioteka Steam i lokalne uruchamianie pozostają w przygotowaniu.")
         SectionTitle("PRYWATNOŚĆ I BEZPIECZEŃSTWO")
         StatusCard("Dane logowania", "NIE SĄ WYMAGANE", "Steam Droid nie prosi o hasło Steam i nie przechwytuje danych logowania.")
-        StatusCard("Połączenie", "OFICJALNY STEAM LINK", "Parowanie z komputerem i streaming odbywają się w aplikacji Valve.")
+        StatusCard("Połączenie", "STEAM LINK + DIAGNOSTYKA", "Steam Link odpowiada za parowanie i streaming. Steam Droid pokazuje stan sieci telefonu i wykryte kontrolery.")
         OutlinedButton(
             onClick = { openWebPage(context, STEAM_REMOTE_PLAY) },
             modifier = Modifier.fillMaxWidth()

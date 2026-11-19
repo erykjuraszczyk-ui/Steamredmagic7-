@@ -40,3 +40,23 @@ Ta ścieżka jest eksperymentalna. Przed jej wdrożeniem należy osobno sprawdzi
 - Bez pobierania nieautoryzowanych kopii gier.
 - Minimalne uprawnienia Android.
 - Integracje zewnętrzne uruchamiane przez jawne intenty.
+
+
+## PC Connect Core (0.2.0)
+
+### Network diagnostics
+- Uses Android ConnectivityManager and NetworkCapabilities.
+- Reports active transport (Wi-Fi, Ethernet, cellular, Bluetooth, VPN or other).
+- Separates NET_CAPABILITY_INTERNET from NET_CAPABILITY_VALIDATED.
+- Shows metered/unmetered status where Android exposes it.
+- Requires only ACCESS_NETWORK_STATE (normal permission).
+- Does not read SSID, password, GPS location or scan the local network.
+
+### Controller diagnostics
+- Uses InputDevice.getDeviceIds() and physical input source flags.
+- Lists non-virtual devices exposing gamepad, joystick or D-pad sources.
+- No Bluetooth scan permission is requested; only devices already recognized by Android are listed.
+- A refresh action re-reads the device list. A device may need reconnecting or app refresh to appear.
+
+### PC reachability boundary
+The app does not claim it has discovered or connected to the gaming PC. Steam Link handles computer discovery, pairing, authentication and streaming. Network diagnostics only describe the phone's active Android network.

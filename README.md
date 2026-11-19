@@ -1,7 +1,7 @@
 # Steam Droid
 
 **Fanowski launcher Steam dla Androida 13+ i REDMAGIC 7.**  
-Wersja projektu: **0.1.0 — Foundation**.
+Wersja projektu: **0.2.0 — PC Connect Core**.
 
 Steam Droid ma być centrum uruchamiania gier Steam na telefonie. Projekt rozwijany jest w dwóch kierunkach:
 
@@ -15,6 +15,9 @@ Steam Droid ma być centrum uruchamiania gier Steam na telefonie. Projekt rozwij
 - Ekrany Start, Biblioteka, Połączenie i Ustawienia.
 - Rozpoznawanie modelu urządzenia, wersji Androida, ABI i szacunkowej pamięci RAM.
 - Przycisk otwierający zainstalowany Steam Link; jeśli aplikacji nie ma, otwiera jej kartę w sklepie.
+- Diagnostyka aktywnej sieci: typ transportu, informacja o dostępie do internetu i statusie połączenia taryfowego.
+- Wykrywanie podłączonych fizycznych kontrolerów gamepad / joystick / D-pad.
+- Kontrola dostępności aplikacji Steam Link.
 - Instrukcja konfiguracji Steam Remote Play.
 - GitHub Actions: automatyczna kompilacja debug APK.
 
@@ -22,7 +25,7 @@ Steam Droid ma być centrum uruchamiania gier Steam na telefonie. Projekt rozwij
 
 Steam Droid nie pobiera samodzielnie gier z serwerów Steam, nie zastępuje oficjalnego klienta Steam i nie omija DRM ani anti-cheat. W trybie PC gra jest instalowana i uruchamiana na komputerze. Telefon odbiera strumień przez Steam Link.
 
-Wersja 0.1.0 nie ma jeszcze logowania do konta Steam, synchronizacji biblioteki ani mostu do Winlatora. Biblioteka pokazuje stan pusty zamiast udawać, że pobrała dane z konta.
+Wersja 0.2.0 nie ma jeszcze logowania do konta Steam, synchronizacji biblioteki ani mostu do Winlatora. Biblioteka pokazuje stan pusty zamiast udawać, że pobrała dane z konta. Diagnostyka nie skanuje sieci lokalnej i nie potwierdza osiągalności konkretnego komputera — parowanie wykonuje Steam Link.
 
 Steam i Steam Link są znakami towarowymi Valve. Steam Droid jest nieoficjalnym projektem fanowskim i nie jest powiązany z Valve.
 
