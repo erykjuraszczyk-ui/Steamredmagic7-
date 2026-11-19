@@ -10,6 +10,8 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -53,11 +55,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 
 private val SteamRed = Color(0xFFE04444)
@@ -245,9 +252,82 @@ private fun LibraryScreen(padding: PaddingValues) {
     var filter by rememberSaveable { mutableStateOf("ALL") }
     var showAddDialog by rememberSaveable { mutableStateOf(false) }
     var showLocalRuntimeInfo by rememberSaveable { mutableStateOf(false) }
+    var metadataBusyId by rememberSaveable { mutableStateOf<Long?>(null) }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                try {
+                    val json = withContext(Dispatchers.IO) {
+                        LibraryJsonTransfer.export(dao.getAll())
+                    }
+                    withContext(Dispatchers.IO) {
+                        val output = context.contentResolver.openOutputStream(uri)
+                            ?: throw IllegalStateException("Nie można otworzyć pliku do zapisu.")
+                        output.use { it.write(json.toByteArray(Charsets.UTF_8)) }
+                    }
+                    Toast.makeText(context, "Kopia biblioteki została wyeksportowana.", Toast.LENGTH_LONG).show()
+                } catch (error: Exception) {
+                    Toast.makeText(
+                        context,
+                        error.message ?: "Eksport nie powiódł się.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                try {
+                    val importedGames = withContext(Dispatchers.IO) {
+                        val input = context.contentResolver.openInputStream(uri)
+                            ?: throw IllegalStateException("Nie można otworzyć wskazanego pliku.")
+                        val json = input.bufferedReader(Charsets.UTF_8).use { it.readText() }
+                        LibraryJsonTransfer.import(json)
+                    }
+
+                    var added = 0
+                    var skipped = 0
+                    importedGames.forEach { imported ->
+                        val duplicate = if (imported.steamAppId != null) {
+                            dao.countBySteamAppId(imported.steamAppId) > 0
+                        } else {
+                            dao.countByTitle(imported.title) > 0
+                        }
+                        if (duplicate) {
+                            skipped++
+                        } else {
+                            dao.insert(imported.copy(id = 0))
+                            added++
+                        }
+                    }
+                    Toast.makeText(
+                        context,
+                        "Import zakończony. Dodano: " + added + ", pominięto duplikaty: " + skipped + ".",
+                        Toast.LENGTH_LONG
+                    ).show()
+                } catch (error: Exception) {
+                    Toast.makeText(
+                        context,
+                        error.message ?: "Import nie powiódł się.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+    }
 
     val filteredGames = games.filter { game ->
+        val displayTitle = game.storeName ?: game.title
         val matchesSearch = searchQuery.isBlank() ||
+            displayTitle.contains(searchQuery, ignoreCase = true) ||
             game.title.contains(searchQuery, ignoreCase = true) ||
             game.steamAppId.orEmpty().contains(searchQuery, ignoreCase = true)
         val matchesFilter = when (filter) {
@@ -268,13 +348,31 @@ private fun LibraryScreen(padding: PaddingValues) {
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(games.size.toString() + " gier", color = SteamText, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text("Dane zapisywane lokalnie na telefonie", color = SteamMuted, fontSize = 11.sp)
+                Text("Room • metadane • kopia zapasowa", color = SteamMuted, fontSize = 11.sp)
             }
             Button(
                 onClick = { showAddDialog = true },
                 colors = ButtonDefaults.buttonColors(containerColor = SteamRed)
             ) {
                 Text("+ DODAJ")
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedButton(
+                onClick = { exportLauncher.launch("steam-droid-library.json") },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("EKSPORT", color = SteamText)
+            }
+            OutlinedButton(
+                onClick = { importLauncher.launch(arrayOf("application/json", "text/*")) },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("IMPORT", color = SteamText)
             }
         }
 
@@ -315,7 +413,7 @@ private fun LibraryScreen(padding: PaddingValues) {
                     )
                     Text(
                         if (games.isEmpty()) {
-                            "Dodaj pierwszą pozycję ręcznie. Steam Droid zapisze ją w lokalnej bazie Room."
+                            "Dodaj grę ręcznie lub zaimportuj kopię biblioteki Steam Droid."
                         } else {
                             "Zmień wyszukiwanie lub filtr, aby zobaczyć inne pozycje."
                         },
@@ -337,6 +435,7 @@ private fun LibraryScreen(padding: PaddingValues) {
             filteredGames.forEach { game ->
                 GameCard(
                     game = game,
+                    metadataLoading = metadataBusyId == game.id,
                     onFavorite = {
                         scope.launch { dao.update(game.copy(isFavorite = !game.isFavorite)) }
                     },
@@ -346,7 +445,7 @@ private fun LibraryScreen(padding: PaddingValues) {
                             GameLaunchMode.PC_STREAMING.name -> {
                                 Toast.makeText(
                                     context,
-                                    "Otwórz " + game.title + " w bibliotece Steam Link na komputerze.",
+                                    "Wybierz " + game.title + " w bibliotece Steam Link na komputerze.",
                                     Toast.LENGTH_LONG
                                 ).show()
                                 openSteamLink(context)
@@ -358,13 +457,51 @@ private fun LibraryScreen(padding: PaddingValues) {
                         game.steamAppId?.let { appId ->
                             openWebPage(context, "https://store.steampowered.com/app/" + appId + "/")
                         }
+                    },
+                    onFetchMetadata = {
+                        val appId = game.steamAppId
+                        if (appId != null) {
+                            scope.launch {
+                                metadataBusyId = game.id
+                                try {
+                                    val metadata = SteamStoreRepository.fetch(appId)
+                                    dao.update(
+                                        game.copy(
+                                            storeName = metadata.name,
+                                            shortDescription = metadata.shortDescription,
+                                            headerImageUrl = metadata.headerImageUrl,
+                                            genres = metadata.genres.joinToString(" • "),
+                                            developers = metadata.developers.joinToString(", "),
+                                            releaseDate = metadata.releaseDate,
+                                            requiredAge = metadata.requiredAge,
+                                            metadataUpdatedAt = System.currentTimeMillis()
+                                        )
+                                    )
+                                    Toast.makeText(context, "Pobrano metadane gry.", Toast.LENGTH_SHORT).show()
+                                } catch (_: AgeRestrictedStoreMetadataException) {
+                                    Toast.makeText(
+                                        context,
+                                        "Metadane tytułów z ograniczeniem 18+ nie są pobierane.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                } catch (error: Exception) {
+                                    Toast.makeText(
+                                        context,
+                                        error.message ?: "Nie udało się pobrać metadanych.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                } finally {
+                                    metadataBusyId = null
+                                }
+                            }
+                        }
                     }
                 )
             }
         }
 
         Text(
-            "Biblioteka 0.3.0 przechowuje wpisy lokalnie. Nie pobiera listy zakupionych gier i nie loguje się do konta Steam.",
+            "Metadane pobierane są na żądanie z publicznej strony sklepu Steam. Ten endpoint nie jest gwarantowanym interfejsem dla aplikacji zewnętrznych i może ograniczać zapytania. Nie potwierdza własności gry.",
             color = SteamMuted,
             fontSize = 11.sp
         )
@@ -398,7 +535,7 @@ private fun LibraryScreen(padding: PaddingValues) {
             title = { Text("Lokalny runtime — etap w przygotowaniu") },
             text = {
                 Text(
-                    "Steam Droid 0.3.0 zapisuje profil gry, ale nie uruchamia jeszcze gier Windows lokalnie. Integracja z runtime zgodności będzie osobnym, testowanym etapem."
+                    "Steam Droid 0.4.0 zapisuje profil gry, ale nie uruchamia jeszcze gier Windows lokalnie. Integracja z runtime zgodności będzie osobnym, testowanym etapem."
                 )
             },
             confirmButton = {
@@ -413,10 +550,12 @@ private fun LibraryScreen(padding: PaddingValues) {
 @Composable
 private fun GameCard(
     game: GameEntity,
+    metadataLoading: Boolean,
     onFavorite: () -> Unit,
     onDelete: () -> Unit,
     onLaunch: () -> Unit,
-    onDetails: () -> Unit
+    onDetails: () -> Unit,
+    onFetchMetadata: () -> Unit
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = SteamSurface),
@@ -426,6 +565,15 @@ private fun GameCard(
             modifier = Modifier.fillMaxWidth().padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(9.dp)
         ) {
+            if (game.headerImageUrl != null) {
+                AsyncImage(
+                    model = game.headerImageUrl,
+                    contentDescription = "Grafika gry " + game.title,
+                    modifier = Modifier.fillMaxWidth().height(104.dp),
+                    contentScale = ContentScale.Crop
+                )
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -446,7 +594,14 @@ private fun GameCard(
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(game.title, color = SteamText, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(
+                        game.storeName ?: game.title,
+                        color = SteamText,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
                     Text(
                         game.steamAppId?.let { "Steam App ID: " + it } ?: "Bez Steam App ID",
                         color = SteamMuted,
@@ -457,6 +612,7 @@ private fun GameCard(
                     Text(if (game.isFavorite) "★" else "☆", color = SteamRed, fontSize = 20.sp)
                 }
             }
+
             Surface(
                 color = if (game.launchMode == GameLaunchMode.PC_STREAMING.name) Color(0xFF183B58) else Color(0xFF3B2B48),
                 shape = RoundedCornerShape(8.dp)
@@ -469,12 +625,35 @@ private fun GameCard(
                     fontWeight = FontWeight.Bold
                 )
             }
+
+            if (!game.shortDescription.isNullOrBlank()) {
+                Text(
+                    game.shortDescription,
+                    color = SteamMuted,
+                    fontSize = 12.sp,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            if (game.genres.isNotBlank()) {
+                Text("Gatunki: " + game.genres, color = SteamMuted, fontSize = 11.sp)
+            }
+            if (game.developers.isNotBlank()) {
+                Text("Twórcy: " + game.developers, color = SteamMuted, fontSize = 11.sp)
+            }
+            if (!game.releaseDate.isNullOrBlank()) {
+                Text("Premiera: " + game.releaseDate, color = SteamMuted, fontSize = 11.sp)
+            }
+            if (game.requiredAge > 0) {
+                Text("Minimalny wiek wg danych sklepu: " + game.requiredAge + "+", color = SteamMuted, fontSize = 10.sp)
+            }
             if (game.notes.isNotBlank()) {
                 Text(game.notes, color = SteamMuted, fontSize = 12.sp)
             }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Button(
                     onClick = onLaunch,
@@ -484,12 +663,23 @@ private fun GameCard(
                     Text("URUCHOM")
                 }
                 if (game.steamAppId != null) {
-                    OutlinedButton(onClick = onDetails) {
-                        Text("STEAM", color = SteamText)
+                    OutlinedButton(
+                        onClick = onFetchMetadata,
+                        enabled = !metadataLoading
+                    ) {
+                        Text(
+                            if (metadataLoading) "..." else if (game.metadataUpdatedAt == null) "OPIS" else "ODŚWIEŻ",
+                            color = SteamText
+                        )
                     }
                 }
                 TextButton(onClick = onDelete) {
                     Text("USUŃ", color = SteamMuted)
+                }
+            }
+            if (game.steamAppId != null) {
+                TextButton(onClick = onDetails) {
+                    Text("OTWÓRZ STRONĘ STEAM", color = SteamMuted, fontSize = 11.sp)
                 }
             }
         }
@@ -708,9 +898,9 @@ private fun SettingsScreen(padding: PaddingValues) {
         BrandHeader("Konfiguracja aplikacji")
         SectionTitle("INFORMACJE")
         StatusCard("Nazwa", "STEAM DROID", "Fanowski launcher dla urządzeń Android 13+.")
-        StatusCard("Wersja", "0.3.0 GAME LIBRARY CORE", "Lokalna biblioteka Room, dodawanie i usuwanie gier, wyszukiwanie, ulubione i profile uruchamiania.")
+        StatusCard("Wersja", "0.4.0 STEAM METADATA CORE", "Okładki, opisy i gatunki z publicznego sklepu Steam, trwały zapis w Room oraz import i eksport biblioteki.")
         SectionTitle("PRYWATNOŚĆ I BEZPIECZEŃSTWO")
-        StatusCard("Dane logowania", "NIE SĄ WYMAGANE", "Steam Droid nie prosi o hasło Steam i nie przechwytuje danych logowania.")
+        StatusCard("Dane logowania", "NIE SĄ WYMAGANE", "Steam Droid nie prosi o hasło Steam. Metadane pobierane są osobno po wpisaniu App ID.")
         StatusCard("Połączenie", "STEAM LINK + DIAGNOSTYKA", "Steam Link odpowiada za parowanie i streaming. Steam Droid pokazuje stan sieci telefonu i wykryte kontrolery.")
         OutlinedButton(
             onClick = { openWebPage(context, STEAM_REMOTE_PLAY) },

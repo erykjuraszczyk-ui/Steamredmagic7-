@@ -13,8 +13,14 @@ interface GameDao {
     @Query("SELECT * FROM games ORDER BY isFavorite DESC, title COLLATE NOCASE ASC")
     fun observeAll(): Flow<List<GameEntity>>
 
+    @Query("SELECT * FROM games ORDER BY isFavorite DESC, title COLLATE NOCASE ASC")
+    suspend fun getAll(): List<GameEntity>
+
     @Query("SELECT COUNT(*) FROM games WHERE steamAppId = :appId")
     suspend fun countBySteamAppId(appId: String): Int
+
+    @Query("SELECT COUNT(*) FROM games WHERE title = :title COLLATE NOCASE")
+    suspend fun countByTitle(title: String): Int
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(game: GameEntity): Long

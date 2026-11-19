@@ -1,84 +1,58 @@
-# Steam Droid — architektura 0.1.0
+# Steam Droid — architektura
 
-## Zasada nadrzędna
+## Zasady nadrzędne
 
-Steam Droid jest launcherem i centrum nawigacji. Nie implementuje własnego protokołu Steam Remote Play, nie pobiera zaszyfrowanych depotów Steam i nie próbuje zastępować klienta Valve.
+Steam Droid jest fanowskim launcherem i katalogiem gier. Nie implementuje własnego protokołu Steam Remote Play, nie pobiera zaszyfrowanych depotów Steam i nie zastępuje klienta Valve.
 
-## Moduły
-
-### UI
-- Jetpack Compose + Material 3.
+## UI
+- Kotlin, Jetpack Compose i Material 3.
 - Zakładki: Start, Biblioteka, Połączenie, Ustawienia.
 - Ciemny motyw z czerwonym akcentem.
 
-### Device Info
-- Odczyt publicznych właściwości urządzenia przez Android SDK.
-- Bez roota i bez uprawnień do odczytu danych innych aplikacji.
-
-### Steam Link Launcher
-- Sprawdza, czy pakiet `com.valvesoftware.steamlink` jest dostępny.
-- Gdy jest zainstalowany, otwiera go przez launch intent.
-- Gdy go nie ma, otwiera stronę aplikacji w Google Play.
-- Nie przekazuje danych logowania Steam.
-
-## Docelowy przepływ PC Streaming
-
-REDMAGIC 7 → Steam Droid → Steam Link → komputer z uruchomionym Steam → gra PC.
-
-Komputer wykonuje grę. Steam Link przesyła strumień audio/wideo do telefonu i przekazuje wejście sterujące do komputera.
-
-## Docelowy przepływ Local Gaming
-
-Steam Droid → lokalny runtime zgodności → środowisko gry Windows.
-
-Ta ścieżka jest eksperymentalna. Przed jej wdrożeniem należy osobno sprawdzić licencje, stabilność runtime, obsługę ARM64, translację x86/x64, sterowniki GPU, wymagania anti-cheat oraz ograniczenia Android Storage Access Framework. Nie wolno deklarować zgodności bez testów konkretnej gry.
-
-## Bezpieczeństwo
-
-- Bez haseł Steam w aplikacji.
-- Bez obchodzenia DRM lub anti-cheat.
-- Bez pobierania nieautoryzowanych kopii gier.
-- Minimalne uprawnienia Android.
-- Integracje zewnętrzne uruchamiane przez jawne intenty.
-
-
 ## PC Connect Core (0.2.0)
-
-### Network diagnostics
-- Uses Android ConnectivityManager and NetworkCapabilities.
-- Reports active transport (Wi-Fi, Ethernet, cellular, Bluetooth, VPN or other).
-- Separates NET_CAPABILITY_INTERNET from NET_CAPABILITY_VALIDATED.
-- Shows metered/unmetered status where Android exposes it.
-- Requires only ACCESS_NETWORK_STATE (normal permission).
-- Does not read SSID, password, GPS location or scan the local network.
-
-### Controller diagnostics
-- Uses InputDevice.getDeviceIds() and physical input source flags.
-- Lists non-virtual devices exposing gamepad, joystick or D-pad sources.
-- No Bluetooth scan permission is requested; only devices already recognized by Android are listed.
-- A refresh action re-reads the device list. A device may need reconnecting or app refresh to appear.
-
-### PC reachability boundary
-The app does not claim it has discovered or connected to the gaming PC. Steam Link handles computer discovery, pairing, authentication and streaming. Network diagnostics only describe the phone's active Android network.
-
+- Android ConnectivityManager / NetworkCapabilities.
+- Wykrywanie podłączonych kontrolerów wejściowych.
+- Steam Link odpowiada za wykrycie komputera, parowanie i streaming.
+- Diagnostyka nie twierdzi, że telefon jest już połączony z komputerem.
 
 ## Game Library Core (0.3.0)
-
-### Storage
 - Room 2.8.5 over SQLite.
-- Singleton database instance scoped to application context.
-- GameEntity stores title, optional Steam App ID, selected launch profile, notes, favorite flag and creation timestamp.
-- DAO exposes an ordered Flow and suspend CRUD operations.
-- No account credentials or ownership claims are stored.
+- GameEntity przechowuje tytuł, Steam App ID, profil uruchamiania, notatki, ulubione i datę dodania.
+- DAO udostępnia Flow i operacje CRUD.
+- Katalog ręczny nie jest weryfikowaną biblioteką zakupów Steam.
 
-### User flows
-- Add a game manually, validate title and optional numeric App ID.
-- Detect duplicate non-empty App IDs.
-- Search by title or App ID.
-- Filter all games, PC Streaming, Local Windows or favorites.
-- Mark favorites and delete entries.
-- PC Streaming opens Steam Link. The user selects the actual game in Steam Link on the paired PC.
-- Local Windows records a profile only and shows an explicit not-yet-available message.
+## Steam Metadata & Artwork Core (0.4.0)
 
-### Data boundaries
-The local catalog is a user-maintained list. It is not a verified Steam account library and is not proof of ownership. Steam App IDs are used only to open public store detail pages.
+### Źródło metadanych
+- Ręczne żądanie po numerycznym Steam App ID.
+- Publiczny endpoint JSON strony sklepu Steam z ustawieniami regionu PL i języka polskiego.
+- Endpoint nie jest traktowany jako stabilny kontrakt API dla zewnętrznych aplikacji.
+- Timeouty i obsługa odpowiedzi HTTP; brak logowania, haseł, cookies i weryfikacji zakupu.
+- Wpisy z ograniczeniem 18+ nie są importowane do metadanych.
+
+### Persistencja
+- Room DB przechodzi z wersji 1 do 2.
+- Migracja dodaje pola metadanych bez usuwania istniejących wierszy.
+- Grafiki są akceptowane wyłącznie z HTTPS i subdomen `steamstatic.com`.
+
+### Grafiki
+- Coil Compose 3 obsługuje pobieranie i buforowanie obrazów.
+- Brak grafiki nie blokuje wyświetlania karty gry.
+
+### Import i eksport
+- JSON wybierany przez Android Storage Access Framework.
+- Import limituje rozmiar i liczbę wpisów, waliduje nazwę oraz App ID, pomija duplikaty i nie nadpisuje katalogu.
+- Dane nie są wysyłane do usługi zewnętrznej.
+
+## Local Gaming — etap przyszły
+
+Steam Droid → lokalny runtime zgodności → środowisko Windows.
+
+Ta ścieżka jest eksperymentalna. Wymaga osobnych testów ARM64, translacji x86/x64, sterowników GPU, anty-cheat, licencji i konkretnej zgodności gier.
+
+## Bezpieczeństwo
+- Bez haseł Steam w aplikacji.
+- Bez obchodzenia DRM lub anti-cheat.
+- Bez nieautoryzowanego pobierania gier.
+- Minimalne uprawnienia Android.
+- Integracje zewnętrzne uruchamiane przez jawne intenty.

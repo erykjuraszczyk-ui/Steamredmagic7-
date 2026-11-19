@@ -4,37 +4,38 @@
 - [x] Bazowy projekt Android / Kotlin / Compose.
 - [x] Ciemny interfejs i nawigacja.
 - [x] Odczyt informacji o urządzeniu.
-- [x] Uruchamianie Steam Link lub otwarcie sklepu.
-- [x] CI budujące debug APK.
+- [x] Uruchamianie Steam Link.
 
 ## 0.2.0 — PC Connect Core (ukończona)
 - [x] Kontrola obecności Steam Link.
 - [x] Diagnostyka aktywnego transportu sieciowego i dostępu do internetu.
-- [x] Wykrywanie fizycznych kontrolerów gamepad / joystick / D-pad.
+- [x] Wykrywanie kontrolerów gamepad / joystick / D-pad.
 - [x] Skrót do ustawień Bluetooth.
-- [x] GitHub Actions: pomyślny build debug APK.
+- [x] Pomyślny build debug APK.
 
-## 0.3.0 — Game Library Core (implementacja)
+## 0.3.0 — Game Library Core (ukończona)
 - [x] Lokalna baza Room/SQLite.
-- [x] Model GameEntity i DAO oparte na Flow.
-- [x] Dodawanie i usuwanie wpisów biblioteki.
-- [x] Opcjonalny Steam App ID i notatki.
-- [x] Ulubione, wyszukiwanie i filtry.
+- [x] Dodawanie i usuwanie wpisów.
+- [x] Steam App ID, notatki, ulubione, wyszukiwanie i filtry.
 - [x] Profile PC Streaming / Local Windows.
 - [x] Walidacja danych i testy jednostkowe.
-- [ ] Test ręczny CRUD i zachowania po restarcie na REDMAGIC 7.
-- [ ] Synchronizacja biblioteki Steam (oddzielny etap bezpieczeństwa i API).
+- [x] Build APK i testy GitHub Actions.
 
-## 0.4.0 — Steam Metadata
-- [ ] Bezpieczne wzbogacanie wpisów o metadane publiczne.
-- [ ] Okładki gier i buforowanie obrazów.
-- [ ] Import App ID / eksport biblioteki.
-- [ ] Brak przechowywania hasła Steam i obchodzenia DRM.
+## 0.4.0 — Steam Metadata & Artwork Core (implementacja)
+- [x] Ręczne pobieranie publicznych metadanych sklepu po Steam App ID.
+- [x] Okładki, krótki opis, gatunki, twórcy i data premiery.
+- [x] Buforowanie obrazów Coil.
+- [x] Migracja Room 1 → 2 bez kasowania istniejących gier.
+- [x] Import i eksport JSON przez Android Storage Access Framework.
+- [x] Odrzucanie metadanych wpisów oznaczonych jako 18+.
+- [ ] Test ręczny importu/eksportu i migracji na REDMAGIC 7.
+- [ ] Weryfikacja zachowania endpointu Store przy ograniczeniach zapytań.
 
 ## 0.5.0 — Local Runtime research
 - [ ] Prototyp integracji z zewnętrznym runtime (bez bundlowania cudzych binariów bez licencji).
 - [ ] Testy zgodności na REDMAGIC 7.
 - [ ] Profile per gra i raportowanie ograniczeń.
+- [ ] Jasny podział PC Streaming / Local Runtime.
 
 ## 1.0.0 — Stable
 - [ ] Stabilna nawigacja i obsługa błędów.
