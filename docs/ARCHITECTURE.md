@@ -60,3 +60,25 @@ Ta ścieżka jest eksperymentalna. Przed jej wdrożeniem należy osobno sprawdzi
 
 ### PC reachability boundary
 The app does not claim it has discovered or connected to the gaming PC. Steam Link handles computer discovery, pairing, authentication and streaming. Network diagnostics only describe the phone's active Android network.
+
+
+## Game Library Core (0.3.0)
+
+### Storage
+- Room 2.8.5 over SQLite.
+- Singleton database instance scoped to application context.
+- GameEntity stores title, optional Steam App ID, selected launch profile, notes, favorite flag and creation timestamp.
+- DAO exposes an ordered Flow and suspend CRUD operations.
+- No account credentials or ownership claims are stored.
+
+### User flows
+- Add a game manually, validate title and optional numeric App ID.
+- Detect duplicate non-empty App IDs.
+- Search by title or App ID.
+- Filter all games, PC Streaming, Local Windows or favorites.
+- Mark favorites and delete entries.
+- PC Streaming opens Steam Link. The user selects the actual game in Steam Link on the paired PC.
+- Local Windows records a profile only and shows an explicit not-yet-available message.
+
+### Data boundaries
+The local catalog is a user-maintained list. It is not a verified Steam account library and is not proof of ownership. Steam App IDs are used only to open public store detail pages.

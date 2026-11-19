@@ -5,30 +5,36 @@
 - [x] Ciemny interfejs i nawigacja.
 - [x] Odczyt informacji o urządzeniu.
 - [x] Uruchamianie Steam Link lub otwarcie sklepu.
-- [x] Instrukcja parowania PC.
 - [x] CI budujące debug APK.
-- [ ] Test kompilacji na fizycznym REDMAGIC 7.
 
-## 0.2.0 — PC Connect Core (implementacja)
-- [x] Kontrola obecności Steam Link przez Android package visibility.
-- [x] Diagnostyka aktywnego transportu sieciowego.
-- [x] Rozróżnienie aktywnej sieci, dostępu do internetu i statusu taryfowego.
-- [x] Wykrywanie fizycznych kontrolerów gamepad / joystick / D-pad przez Android InputDevice API.
-- [x] Skrót do ustawień Bluetooth i ręczne odświeżanie diagnostyki.
-- [x] Wyjaśnienie granic diagnostyki — bez pozorowania wykrycia komputera Steam.
-- [ ] Test na fizycznym REDMAGIC 7 i kontrolerach Bluetooth/USB.
+## 0.2.0 — PC Connect Core (ukończona)
+- [x] Kontrola obecności Steam Link.
+- [x] Diagnostyka aktywnego transportu sieciowego i dostępu do internetu.
+- [x] Wykrywanie fizycznych kontrolerów gamepad / joystick / D-pad.
+- [x] Skrót do ustawień Bluetooth.
+- [x] GitHub Actions: pomyślny build debug APK.
 
-## 0.3.0 — Library
-- [ ] Projekt modelu biblioteki i lokalnej bazy Room.
-- [ ] Import metadanych gier bez przechowywania danych logowania.
-- [ ] Obsługa pustych, błędnych i prywatnych odpowiedzi.
-- [ ] Oznaczanie trybu PC Streaming / Local.
+## 0.3.0 — Game Library Core (implementacja)
+- [x] Lokalna baza Room/SQLite.
+- [x] Model GameEntity i DAO oparte na Flow.
+- [x] Dodawanie i usuwanie wpisów biblioteki.
+- [x] Opcjonalny Steam App ID i notatki.
+- [x] Ulubione, wyszukiwanie i filtry.
+- [x] Profile PC Streaming / Local Windows.
+- [x] Walidacja danych i testy jednostkowe.
+- [ ] Test ręczny CRUD i zachowania po restarcie na REDMAGIC 7.
+- [ ] Synchronizacja biblioteki Steam (oddzielny etap bezpieczeństwa i API).
 
-## 0.4.0 — Local Runtime research
+## 0.4.0 — Steam Metadata
+- [ ] Bezpieczne wzbogacanie wpisów o metadane publiczne.
+- [ ] Okładki gier i buforowanie obrazów.
+- [ ] Import App ID / eksport biblioteki.
+- [ ] Brak przechowywania hasła Steam i obchodzenia DRM.
+
+## 0.5.0 — Local Runtime research
 - [ ] Prototyp integracji z zewnętrznym runtime (bez bundlowania cudzych binariów bez licencji).
 - [ ] Testy zgodności na REDMAGIC 7.
 - [ ] Profile per gra i raportowanie ograniczeń.
-- [ ] Brak automatycznego pobierania gier z pominięciem oficjalnego klienta.
 
 ## 1.0.0 — Stable
 - [ ] Stabilna nawigacja i obsługa błędów.

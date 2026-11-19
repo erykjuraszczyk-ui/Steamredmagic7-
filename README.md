@@ -1,14 +1,14 @@
 # Steam Droid
 
 **Fanowski launcher Steam dla Androida 13+ i REDMAGIC 7.**  
-Wersja projektu: **0.2.0 — PC Connect Core**.
+Wersja projektu: **0.3.0 — Game Library Core**
 
 Steam Droid ma być centrum uruchamiania gier Steam na telefonie. Projekt rozwijany jest w dwóch kierunkach:
 
 1. **PC Streaming** — uruchamianie gry na komputerze i przesyłanie obrazu oraz sterowania na telefon przez oficjalny Steam Link / Steam Remote Play.
 2. **Local Gaming** — przyszła integracja z lokalnymi środowiskami zgodności Windows na Androidzie (np. Winlator). To funkcja eksperymentalna; nie każda gra i nie każda wersja klienta Steam będzie działać.
 
-## Co działa w 0.1.0
+## Co działa w 0.3.0
 
 - Natywna aplikacja Android napisana w Kotlinie i Jetpack Compose.
 - Interfejs w ciemnym motywie z czerwonym akcentem.
@@ -19,13 +19,18 @@ Steam Droid ma być centrum uruchamiania gier Steam na telefonie. Projekt rozwij
 - Wykrywanie podłączonych fizycznych kontrolerów gamepad / joystick / D-pad.
 - Kontrola dostępności aplikacji Steam Link.
 - Instrukcja konfiguracji Steam Remote Play.
-- GitHub Actions: automatyczna kompilacja debug APK.
+- Lokalna biblioteka gier w Room/SQLite.
+- Dodawanie i usuwanie pozycji, ulubione, filtrowanie i wyszukiwanie.
+- Opcjonalny Steam App ID i notatki do gry.
+- Profile PC Streaming i Local Windows (profil lokalny nie uruchamia jeszcze gry).
+- Walidacja nazwy i Steam App ID oraz testy jednostkowe.
+- GitHub Actions: automatyczna kompilacja debug APK i testy.
 
 ## Ważne ograniczenia
 
 Steam Droid nie pobiera samodzielnie gier z serwerów Steam, nie zastępuje oficjalnego klienta Steam i nie omija DRM ani anti-cheat. W trybie PC gra jest instalowana i uruchamiana na komputerze. Telefon odbiera strumień przez Steam Link.
 
-Wersja 0.2.0 nie ma jeszcze logowania do konta Steam, synchronizacji biblioteki ani mostu do Winlatora. Biblioteka pokazuje stan pusty zamiast udawać, że pobrała dane z konta. Diagnostyka nie skanuje sieci lokalnej i nie potwierdza osiągalności konkretnego komputera — parowanie wykonuje Steam Link.
+Wersja 0.3.0 nie loguje się do konta Steam i nie pobiera automatycznie listy zakupionych gier. Użytkownik dodaje pozycje ręcznie; są one zapisywane lokalnie w Room/SQLite. Profil PC Streaming otwiera oficjalny Steam Link, gdzie grę należy wybrać na komputerze. Profil Local Windows jest obecnie wpisem konfiguracyjnym — lokalny runtime nie jest jeszcze zintegrowany. Diagnostyka nie skanuje sieci lokalnej i nie potwierdza osiągalności konkretnego komputera — parowanie wykonuje Steam Link.
 
 Steam i Steam Link są znakami towarowymi Valve. Steam Droid jest nieoficjalnym projektem fanowskim i nie jest powiązany z Valve.
 

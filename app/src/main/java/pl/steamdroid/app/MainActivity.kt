@@ -25,11 +25,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -37,11 +40,14 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -52,6 +58,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 
 private val SteamRed = Color(0xFFE04444)
 private val SteamBackground = Color(0xFF0C0F13)
@@ -213,9 +220,9 @@ private fun HomeScreen(padding: PaddingValues) {
             description = "Steam Link działa jako osobna, oficjalna aplikacja. Steam Droid otwiera ją jednym przyciskiem."
         )
         StatusCard(
-            title = "Gry lokalne Windows",
-            status = "W PRZYGOTOWANIU",
-            description = "Integracja z warstwą zgodności Android/Windows nie jest jeszcze częścią wersji 0.1.0."
+            title = "Biblioteka gier",
+            status = "LOKALNA BAZA ROOM",
+            description = "Zapisuj pozycje, wyszukuj gry i wybieraj profil PC Streaming lub Local Windows."
         )
 
         SectionTitle("TWOJE URZĄDZENIE")
@@ -231,39 +238,349 @@ private fun HomeScreen(padding: PaddingValues) {
 @Composable
 private fun LibraryScreen(padding: PaddingValues) {
     val context = LocalContext.current
+    val dao = remember(context) { SteamDroidDatabase.getInstance(context).gameDao() }
+    val games by dao.observeAll().collectAsState(initial = emptyList())
+    val scope = rememberCoroutineScope()
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var filter by rememberSaveable { mutableStateOf("ALL") }
+    var showAddDialog by rememberSaveable { mutableStateOf(false) }
+    var showLocalRuntimeInfo by rememberSaveable { mutableStateOf(false) }
+
+    val filteredGames = games.filter { game ->
+        val matchesSearch = searchQuery.isBlank() ||
+            game.title.contains(searchQuery, ignoreCase = true) ||
+            game.steamAppId.orEmpty().contains(searchQuery, ignoreCase = true)
+        val matchesFilter = when (filter) {
+            "PC_STREAMING" -> game.launchMode == GameLaunchMode.PC_STREAMING.name
+            "LOCAL" -> game.launchMode == GameLaunchMode.LOCAL.name
+            "FAVORITES" -> game.isFavorite
+            else -> true
+        }
+        matchesSearch && matchesFilter
+    }
+
     ScreenColumn(padding) {
-        BrandHeader("Twoje gry")
-        Card(
-            colors = CardDefaults.cardColors(containerColor = SteamSurface),
-            shape = RoundedCornerShape(20.dp)
+        BrandHeader("Twoja biblioteka gier")
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(games.size.toString() + " gier", color = SteamText, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Dane zapisywane lokalnie na telefonie", color = SteamMuted, fontSize = 11.sp)
+            }
+            Button(
+                onClick = { showAddDialog = true },
+                colors = ButtonDefaults.buttonColors(containerColor = SteamRed)
             ) {
-                Text("▦", color = SteamRed, fontSize = 42.sp)
-                Text("Biblioteka jest jeszcze pusta", color = SteamText, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text(
-                    "Wersja 0.1.0 nie łączy się jeszcze z kontem Steam ani nie pobiera listy zakupionych gier. Możesz otworzyć Steam Link i korzystać z biblioteki na swoim komputerze.",
-                    color = SteamMuted,
-                    fontSize = 13.sp,
-                    textAlign = TextAlign.Center
+                Text("+ DODAJ")
+            }
+        }
+
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            label = { Text("Szukaj gry lub Steam App ID") }
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            FilterChip(selected = filter == "ALL", onClick = { filter = "ALL" }, label = { Text("Wszystkie") })
+            FilterChip(selected = filter == "PC_STREAMING", onClick = { filter = "PC_STREAMING" }, label = { Text("PC") })
+            FilterChip(selected = filter == "LOCAL", onClick = { filter = "LOCAL" }, label = { Text("Lokalne") })
+            FilterChip(selected = filter == "FAVORITES", onClick = { filter = "FAVORITES" }, label = { Text("★") })
+        }
+
+        if (filteredGames.isEmpty()) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = SteamSurface),
+                shape = RoundedCornerShape(18.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text("▦", color = SteamRed, fontSize = 40.sp)
+                    Text(
+                        if (games.isEmpty()) "Twoja biblioteka jest pusta" else "Nie znaleziono gier",
+                        color = SteamText,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp
+                    )
+                    Text(
+                        if (games.isEmpty()) {
+                            "Dodaj pierwszą pozycję ręcznie. Steam Droid zapisze ją w lokalnej bazie Room."
+                        } else {
+                            "Zmień wyszukiwanie lub filtr, aby zobaczyć inne pozycje."
+                        },
+                        color = SteamMuted,
+                        textAlign = TextAlign.Center,
+                        fontSize = 13.sp
+                    )
+                    if (games.isEmpty()) {
+                        Button(
+                            onClick = { showAddDialog = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = SteamRed)
+                        ) {
+                            Text("DODAJ PIERWSZĄ GRĘ")
+                        }
+                    }
+                }
+            }
+        } else {
+            filteredGames.forEach { game ->
+                GameCard(
+                    game = game,
+                    onFavorite = {
+                        scope.launch { dao.update(game.copy(isFavorite = !game.isFavorite)) }
+                    },
+                    onDelete = { scope.launch { dao.delete(game) } },
+                    onLaunch = {
+                        when (game.launchMode) {
+                            GameLaunchMode.PC_STREAMING.name -> {
+                                Toast.makeText(
+                                    context,
+                                    "Otwórz " + game.title + " w bibliotece Steam Link na komputerze.",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                                openSteamLink(context)
+                            }
+                            else -> showLocalRuntimeInfo = true
+                        }
+                    },
+                    onDetails = {
+                        game.steamAppId?.let { appId ->
+                            openWebPage(context, "https://store.steampowered.com/app/" + appId + "/")
+                        }
+                    }
                 )
+            }
+        }
+
+        Text(
+            "Biblioteka 0.3.0 przechowuje wpisy lokalnie. Nie pobiera listy zakupionych gier i nie loguje się do konta Steam.",
+            color = SteamMuted,
+            fontSize = 11.sp
+        )
+    }
+
+    if (showAddDialog) {
+        AddGameDialog(
+            onDismiss = { showAddDialog = false },
+            onSave = { newGame ->
+                scope.launch {
+                    val appId = newGame.steamAppId
+                    val duplicate = appId != null && dao.countBySteamAppId(appId) > 0
+                    if (duplicate) {
+                        Toast.makeText(
+                            context,
+                            "Gra z tym Steam App ID jest już w bibliotece.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    } else {
+                        dao.insert(newGame)
+                    }
+                }
+                showAddDialog = false
+            }
+        )
+    }
+
+    if (showLocalRuntimeInfo) {
+        AlertDialog(
+            onDismissRequest = { showLocalRuntimeInfo = false },
+            title = { Text("Lokalny runtime — etap w przygotowaniu") },
+            text = {
+                Text(
+                    "Steam Droid 0.3.0 zapisuje profil gry, ale nie uruchamia jeszcze gier Windows lokalnie. Integracja z runtime zgodności będzie osobnym, testowanym etapem."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { showLocalRuntimeInfo = false }) {
+                    Text("ROZUMIEM")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun GameCard(
+    game: GameEntity,
+    onFavorite: () -> Unit,
+    onDelete: () -> Unit,
+    onLaunch: () -> Unit,
+    onDetails: () -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = SteamSurface),
+        shape = RoundedCornerShape(18.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(9.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    modifier = Modifier.size(46.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = SteamRed.copy(alpha = 0.18f)
+                ) {
+                    androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            game.title.take(1).uppercase(),
+                            color = SteamRed,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 20.sp
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(game.title, color = SteamText, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(
+                        game.steamAppId?.let { "Steam App ID: " + it } ?: "Bez Steam App ID",
+                        color = SteamMuted,
+                        fontSize = 11.sp
+                    )
+                }
+                TextButton(onClick = onFavorite) {
+                    Text(if (game.isFavorite) "★" else "☆", color = SteamRed, fontSize = 20.sp)
+                }
+            }
+            Surface(
+                color = if (game.launchMode == GameLaunchMode.PC_STREAMING.name) Color(0xFF183B58) else Color(0xFF3B2B48),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    if (game.launchMode == GameLaunchMode.PC_STREAMING.name) "PC STREAMING" else "LOCAL WINDOWS",
+                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                    color = SteamText,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            if (game.notes.isNotBlank()) {
+                Text(game.notes, color = SteamMuted, fontSize = 12.sp)
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 Button(
-                    onClick = { openSteamLink(context) },
+                    onClick = onLaunch,
+                    modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = SteamRed)
                 ) {
-                    Text("OTWÓRZ STEAM LINK")
+                    Text("URUCHOM")
+                }
+                if (game.steamAppId != null) {
+                    OutlinedButton(onClick = onDetails) {
+                        Text("STEAM", color = SteamText)
+                    }
+                }
+                TextButton(onClick = onDelete) {
+                    Text("USUŃ", color = SteamMuted)
                 }
             }
         }
-        SectionTitle("PLANOWANE FUNKCJE")
-        StatusCard("Import biblioteki", "PLANOWANE", "Pobieranie publicznych informacji o grach z legalnych źródeł i synchronizacja po bezpiecznym uwierzytelnieniu.")
-        StatusCard("Profile gier", "PLANOWANE", "Osobne ustawienia sterowania i uruchamiania dla każdej gry.")
     }
+}
+
+@Composable
+private fun AddGameDialog(
+    onDismiss: () -> Unit,
+    onSave: (GameEntity) -> Unit
+) {
+    var title by rememberSaveable { mutableStateOf("") }
+    var appId by rememberSaveable { mutableStateOf("") }
+    var notes by rememberSaveable { mutableStateOf("") }
+    var selectedMode by rememberSaveable { mutableStateOf(GameLaunchMode.PC_STREAMING.name) }
+    var error by rememberSaveable { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Dodaj grę do biblioteki") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it; error = null },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text("Nazwa gry *") }
+                )
+                OutlinedTextField(
+                    value = appId,
+                    onValueChange = { appId = it; error = null },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text("Steam App ID (opcjonalnie)") }
+                )
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    label = { Text("Notatka (opcjonalnie)") }
+                )
+                Text("TRYB URUCHAMIANIA", color = SteamMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = selectedMode == GameLaunchMode.PC_STREAMING.name,
+                        onClick = { selectedMode = GameLaunchMode.PC_STREAMING.name },
+                        label = { Text("PC Streaming") }
+                    )
+                    FilterChip(
+                        selected = selectedMode == GameLaunchMode.LOCAL.name,
+                        onClick = { selectedMode = GameLaunchMode.LOCAL.name },
+                        label = { Text("Lokalny") }
+                    )
+                }
+                error?.let { Text(it, color = SteamRed, fontSize = 12.sp) }
+                Text(
+                    "Tryb lokalny zapisuje tylko profil. Uruchamianie gier Windows lokalnie nie jest jeszcze dostępne.",
+                    color = SteamMuted,
+                    fontSize = 11.sp
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val validation = GameInputValidator.validate(title, appId)
+                    if (validation != null) {
+                        error = validation
+                    } else {
+                        onSave(
+                            GameEntity(
+                                title = title.trim(),
+                                steamAppId = appId.trim().ifBlank { null },
+                                launchMode = selectedMode,
+                                notes = notes.trim()
+                            )
+                        )
+                    }
+                }
+            ) {
+                Text("ZAPISZ", color = SteamRed)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("ANULUJ", color = SteamMuted)
+            }
+        }
+    )
 }
 
 @Composable
@@ -391,7 +708,7 @@ private fun SettingsScreen(padding: PaddingValues) {
         BrandHeader("Konfiguracja aplikacji")
         SectionTitle("INFORMACJE")
         StatusCard("Nazwa", "STEAM DROID", "Fanowski launcher dla urządzeń Android 13+.")
-        StatusCard("Wersja", "0.2.0 PC CONNECT CORE", "Diagnostyka sieci, kontrolerów i dostępności Steam Link. Biblioteka Steam i lokalne uruchamianie pozostają w przygotowaniu.")
+        StatusCard("Wersja", "0.3.0 GAME LIBRARY CORE", "Lokalna biblioteka Room, dodawanie i usuwanie gier, wyszukiwanie, ulubione i profile uruchamiania.")
         SectionTitle("PRYWATNOŚĆ I BEZPIECZEŃSTWO")
         StatusCard("Dane logowania", "NIE SĄ WYMAGANE", "Steam Droid nie prosi o hasło Steam i nie przechwytuje danych logowania.")
         StatusCard("Połączenie", "STEAM LINK + DIAGNOSTYKA", "Steam Link odpowiada za parowanie i streaming. Steam Droid pokazuje stan sieci telefonu i wykryte kontrolery.")
