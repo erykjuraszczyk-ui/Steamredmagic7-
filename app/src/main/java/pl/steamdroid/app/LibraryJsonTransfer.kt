@@ -38,7 +38,7 @@ object LibraryJsonTransfer {
             .toString(2)
     }
 
-    fun import(json: String): List<GameEntity> {
+    fun decode(json: String): List<GameEntity> {
         require(json.toByteArray(Charsets.UTF_8).size <= MAX_IMPORT_BYTES) {
             "Plik kopii zapasowej jest zbyt duży."
         }

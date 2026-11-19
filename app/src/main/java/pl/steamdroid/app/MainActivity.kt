@@ -290,7 +290,7 @@ private fun LibraryScreen(padding: PaddingValues) {
                         val input = context.contentResolver.openInputStream(uri)
                             ?: throw IllegalStateException("Nie można otworzyć wskazanego pliku.")
                         val json = input.bufferedReader(Charsets.UTF_8).use { it.readText() }
-                        LibraryJsonTransfer.import(json)
+                        LibraryJsonTransfer.decode(json)
                     }
 
                     var added = 0
