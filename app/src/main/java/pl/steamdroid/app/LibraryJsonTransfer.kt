@@ -27,6 +27,10 @@ object LibraryJsonTransfer {
                     .put("releaseDate", game.releaseDate ?: JSONObject.NULL)
                     .put("requiredAge", game.requiredAge)
                     .put("metadataUpdatedAt", game.metadataUpdatedAt ?: JSONObject.NULL)
+                    .put("localCompatibility", game.localCompatibility)
+                    .put("localRuntimePreset", game.localRuntimePreset)
+                    .put("localTestNotes", game.localTestNotes)
+                    .put("localTestedAt", game.localTestedAt ?: JSONObject.NULL)
             )
         }
 
@@ -106,7 +110,15 @@ object LibraryJsonTransfer {
                         releaseDate = nullableString(item, "releaseDate")?.take(100),
                         requiredAge = requiredAge.coerceAtMost(17),
                         metadataUpdatedAt = item.optLong("metadataUpdatedAt", 0L)
-                            .takeIf { it > 0L }
+                            .takeIf { it > 0L },
+                        localCompatibility = LocalRuntimeProfileRules.normalizeStatus(
+                            item.optString("localCompatibility", LocalRuntimeProfileRules.NOT_TESTED)
+                        ),
+                        localRuntimePreset = LocalRuntimeProfileRules.normalizePreset(
+                            item.optString("localRuntimePreset", LocalRuntimeProfileRules.BALANCED)
+                        ),
+                        localTestNotes = item.optString("localTestNotes", "").take(1_000),
+                        localTestedAt = item.optLong("localTestedAt", 0L).takeIf { it > 0L }
                     )
                 )
             }

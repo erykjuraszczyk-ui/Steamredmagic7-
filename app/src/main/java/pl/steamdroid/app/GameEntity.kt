@@ -33,5 +33,12 @@ data class GameEntity(
     val releaseDate: String? = null,
     @ColumnInfo(defaultValue = "0")
     val requiredAge: Int = 0,
-    val metadataUpdatedAt: Long? = null
+    val metadataUpdatedAt: Long? = null,
+    @ColumnInfo(defaultValue = "'NOT_TESTED'")
+    val localCompatibility: String = LocalRuntimeProfileRules.NOT_TESTED,
+    @ColumnInfo(defaultValue = "'BALANCED'")
+    val localRuntimePreset: String = LocalRuntimeProfileRules.BALANCED,
+    @ColumnInfo(defaultValue = "''")
+    val localTestNotes: String = "",
+    val localTestedAt: Long? = null
 )

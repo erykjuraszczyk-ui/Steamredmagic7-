@@ -93,6 +93,7 @@ private enum class AppTab(val label: String, val symbol: String) {
     HOME("Start", "⌂"),
     LIBRARY("Biblioteka", "▦"),
     CONNECT("Połączenie", "⌁"),
+    LOCAL("Local Engine", "▣"),
     SETTINGS("Ustawienia", "⚙")
 }
 
@@ -141,6 +142,7 @@ private fun SteamDroidApp() {
             AppTab.HOME -> HomeScreen(padding)
             AppTab.LIBRARY -> LibraryScreen(padding)
             AppTab.CONNECT -> ConnectScreen(padding)
+            AppTab.LOCAL -> LocalEngineScreen(padding)
             AppTab.SETTINGS -> SettingsScreen(padding)
         }
     }
@@ -251,7 +253,7 @@ private fun LibraryScreen(padding: PaddingValues) {
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var filter by rememberSaveable { mutableStateOf("ALL") }
     var showAddDialog by rememberSaveable { mutableStateOf(false) }
-    var showLocalRuntimeInfo by rememberSaveable { mutableStateOf(false) }
+    var editingLocalProfile by remember { mutableStateOf<GameEntity?>(null) }
     var metadataBusyId by rememberSaveable { mutableStateOf<Long?>(null) }
 
     val exportLauncher = rememberLauncherForActivityResult(
@@ -440,6 +442,7 @@ private fun LibraryScreen(padding: PaddingValues) {
                         scope.launch { dao.update(game.copy(isFavorite = !game.isFavorite)) }
                     },
                     onDelete = { scope.launch { dao.delete(game) } },
+                    onEditLocalProfile = { editingLocalProfile = game },
                     onLaunch = {
                         when (game.launchMode) {
                             GameLaunchMode.PC_STREAMING.name -> {
@@ -450,7 +453,22 @@ private fun LibraryScreen(padding: PaddingValues) {
                                 ).show()
                                 openSteamLink(context)
                             }
-                            else -> showLocalRuntimeInfo = true
+                            else -> {
+                                if (WinlatorBridge.launch(context)) {
+                                    Toast.makeText(
+                                        context,
+                                        "Winlator uruchomiony. Wybierz kontener i skrót gry w aplikacji runtime.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "Nie wykryto Winlatora. Otwieram oficjalne wydania.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                    openWebPage(context, WinlatorBridge.OFFICIAL_RELEASES_URL)
+                                }
+                            }
                         }
                     },
                     onDetails = {
@@ -529,19 +547,13 @@ private fun LibraryScreen(padding: PaddingValues) {
         )
     }
 
-    if (showLocalRuntimeInfo) {
-        AlertDialog(
-            onDismissRequest = { showLocalRuntimeInfo = false },
-            title = { Text("Lokalny runtime — etap w przygotowaniu") },
-            text = {
-                Text(
-                    "Steam Droid 0.4.0 zapisuje profil gry, ale nie uruchamia jeszcze gier Windows lokalnie. Integracja z runtime zgodności będzie osobnym, testowanym etapem."
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { showLocalRuntimeInfo = false }) {
-                    Text("ROZUMIEM")
-                }
+    editingLocalProfile?.let { game ->
+        LocalRuntimeProfileDialog(
+            game = game,
+            onDismiss = { editingLocalProfile = null },
+            onSave = { updated ->
+                scope.launch { dao.update(updated) }
+                editingLocalProfile = null
             }
         )
     }
@@ -555,7 +567,8 @@ private fun GameCard(
     onDelete: () -> Unit,
     onLaunch: () -> Unit,
     onDetails: () -> Unit,
-    onFetchMetadata: () -> Unit
+    onFetchMetadata: () -> Unit,
+    onEditLocalProfile: () -> Unit
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = SteamSurface),
@@ -649,6 +662,20 @@ private fun GameCard(
             }
             if (game.notes.isNotBlank()) {
                 Text(game.notes, color = SteamMuted, fontSize = 12.sp)
+            }
+            if (game.launchMode == GameLaunchMode.LOCAL.name) {
+                Text(
+                    "Zgodność: " + compatibilityLabel(game.localCompatibility) +
+                        " • Profil: " + runtimePresetLabel(game.localRuntimePreset),
+                    color = SteamMuted,
+                    fontSize = 11.sp
+                )
+                if (game.localTestNotes.isNotBlank()) {
+                    Text("Test: " + game.localTestNotes, color = SteamMuted, fontSize = 11.sp)
+                }
+                TextButton(onClick = onEditLocalProfile) {
+                    Text("KONFIGURUJ PROFIL LOKALNY", color = SteamMuted, fontSize = 11.sp)
+                }
             }
 
             Row(
@@ -898,7 +925,7 @@ private fun SettingsScreen(padding: PaddingValues) {
         BrandHeader("Konfiguracja aplikacji")
         SectionTitle("INFORMACJE")
         StatusCard("Nazwa", "STEAM DROID", "Fanowski launcher dla urządzeń Android 13+.")
-        StatusCard("Wersja", "0.4.0 STEAM METADATA CORE", "Okładki, opisy i gatunki z publicznego sklepu Steam, trwały zapis w Room oraz import i eksport biblioteki.")
+        StatusCard("Wersja", "0.5.0 LOCAL GAMING ENGINE", "Integracja z zewnętrznym Winlatorem, profile lokalnej zgodności i rejestr ręcznych testów gier.")
         SectionTitle("PRYWATNOŚĆ I BEZPIECZEŃSTWO")
         StatusCard("Dane logowania", "NIE SĄ WYMAGANE", "Steam Droid nie prosi o hasło Steam. Metadane pobierane są osobno po wpisaniu App ID.")
         StatusCard("Połączenie", "STEAM LINK + DIAGNOSTYKA", "Steam Link odpowiada za parowanie i streaming. Steam Droid pokazuje stan sieci telefonu i wykryte kontrolery.")

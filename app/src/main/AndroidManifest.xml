@@ -6,6 +6,7 @@
 
     <queries>
         <package android:name="com.valvesoftware.steamlink" />
+        <package android:name="com.winlator" />
     </queries>
 
     <uses-feature

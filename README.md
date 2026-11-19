@@ -1,39 +1,42 @@
 # Steam Droid
 
 **Fanowski launcher Steam dla Androida 13+ i REDMAGIC 7.**  
-Wersja projektu: **0.4.0 — Steam Metadata & Artwork Core**.
+Wersja projektu: **0.5.0 — Local Gaming Engine**.
 
-Steam Droid jest centrum biblioteki gier i dostępu do Steam na telefonie. Projekt rozwijany jest w dwóch kierunkach:
+Steam Droid jest centrum biblioteki gier i dostępu do Steam na telefonie. Projekt posiada dwa odrębne sposoby pracy:
 
-1. **PC Streaming** — gra uruchamia się na komputerze, a obraz i sterowanie są przesyłane na telefon przez oficjalny Steam Link / Steam Remote Play.
-2. **Local Gaming** — przyszła integracja z lokalnymi środowiskami zgodności Windows na Androidzie (np. Winlator). To funkcja eksperymentalna i zależna od konkretnego tytułu.
+1. **PC Streaming** — gra działa na komputerze, a obraz i sterowanie są przesyłane na telefon przez oficjalny Steam Link / Steam Remote Play.
+2. **Local Gaming** — Steam Droid wykrywa i otwiera osobno zainstalowany Winlator. Konfiguracja kontenerów i skrótów EXE odbywa się wewnątrz Winlatora.
 
-## Co działa w 0.4.0
+## Co działa w 0.5.0
 
 - Natywna aplikacja Android napisana w Kotlinie i Jetpack Compose.
-- Ciemny interfejs z czerwonym akcentem.
-- Ekrany Start, Biblioteka, Połączenie i Ustawienia.
+- Interfejs w ciemnym motywie z czerwonym akcentem.
+- Ekrany Start, Biblioteka, Połączenie, Local Engine i Ustawienia.
 - Informacje o urządzeniu oraz diagnostyka sieci.
 - Wykrywanie kontrolerów gamepad / joystick / D-pad.
 - Uruchamianie oficjalnego Steam Link.
 - Lokalna biblioteka gier w Room/SQLite.
 - Dodawanie, usuwanie, ulubione, wyszukiwanie i filtrowanie.
-- Profile PC Streaming i Local Windows.
-- Pobieranie publicznych metadanych sklepu Steam po wpisaniu App ID: nazwa, krótki opis, grafika, gatunki, twórcy i data premiery.
-- Buforowanie obrazów przez Coil.
-- Migracja bazy Room 1 → 2 zachowująca istniejące wpisy.
-- Import i eksport biblioteki do JSON przez systemowy wybór plików.
+- Metadane i grafiki pobierane na żądanie po Steam App ID.
+- Import i eksport biblioteki do JSON.
+- Wykrywanie standardowego pakietu Winlator `com.winlator`.
+- Otwieranie Winlatora, jeśli jest zainstalowany, albo strony oficjalnych wydań.
+- Profile lokalne per gra: status ręcznego testu, preferowany preset Box64 i notatka.
+- Migracja Room 2 → 3 zachowująca dotychczasowe wpisy.
 - Testy jednostkowe i GitHub Actions budujące APK.
 
-## Ważne ograniczenia
+## Ważne ograniczenia Local Engine
 
-Steam Droid nie pobiera samodzielnie gier z serwerów Steam, nie zastępuje oficjalnego klienta i nie omija DRM ani anti-cheat. W trybie PC gra działa na komputerze, a telefon odbiera strumień.
+Steam Droid 0.5.0 **nie uruchamia konkretnego pliku EXE wewnątrz Winlatora** i nie steruje kontenerami. Nie ma tu nieudokumentowanej automatyzacji ani kopiowania binariów Winlatora. Aplikacja otwiera zainstalowany runtime, a użytkownik konfiguruje kontener i skrót w Winlatorze.
 
-Aplikacja nie loguje się do konta Steam i nie pobiera prywatnej listy zakupionych gier. Użytkownik dodaje pozycje do własnego katalogu. Metadane pobierane są ręcznie z publicznego endpointu strony sklepu Steam. To nie jest gwarantowany, udokumentowany kontrakt API dla aplikacji zewnętrznych: może ograniczać zapytania lub zmienić format odpowiedzi. Aplikacja pokazuje błąd i nie usuwa starych danych, gdy pobieranie się nie powiedzie.
+Profile Box64 w Steam Droid są notatkami/preferencjami dla użytkownika. Nie są automatycznie przekazywane do ustawień Winlatora. Status zgodności jest ręcznym wynikiem testu, a nie gwarancją działania.
 
-Tytuły oznaczone przez dane sklepu jako 18+ nie są pobierane do metadanych ani importowane z kopii JSON. Wpis z App ID nie stanowi potwierdzenia zakupu ani prawa do gry.
+Winlator uruchamia część aplikacji Windows x86/x64 przez Wine i Box86/Box64. Zgodność zależy od gry, sterownika, ustawień kontenera, wymagań DRM/anti-cheat i wersji runtime. Nie każda gra Steam, klient Steam ani usługa sieciowa będzie działać w środowisku zgodności.
 
-Steam i Steam Link są znakami towarowymi Valve. Steam Droid jest nieoficjalnym projektem fanowskim i nie jest powiązany z Valve.
+Steam Droid nie pobiera gier z pominięciem oficjalnych źródeł i nie omija DRM ani anti-cheat. Nie loguje się do konta Steam i nie pobiera prywatnej listy zakupów. Wpisy w katalogu są zarządzane przez użytkownika.
+
+Steam i Steam Link są znakami towarowymi Valve. Winlator jest osobnym projektem. Steam Droid nie jest powiązany z Valve ani autorami Winlatora.
 
 ## Wymagania
 
@@ -45,39 +48,36 @@ Steam i Steam Link są znakami towarowymi Valve. Steam Droid jest nieoficjalnym 
 
 ## Kompilacja
 
-1. Sklonuj repozytorium:
-   ```bash
-   git clone https://github.com/erykjuraszczyk-ui/Steamredmagic7-.git
-   ```
-2. Otwórz katalog w Android Studio.
-3. Ustaw JDK 17 i zainstaluj Android SDK 36.
-4. Zbuduj aplikację:
-   ```bash
-   gradle --no-daemon testDebugUnitTest
-   gradle --no-daemon assembleDebug
-   ```
-5. APK znajdziesz w:
-   `app/build/outputs/apk/debug/app-debug.apk`.
+```bash
+gradle --no-daemon testDebugUnitTest
+gradle --no-daemon assembleDebug
+```
 
-## Pierwsze uruchomienie
+APK:
+`app/build/outputs/apk/debug/app-debug.apk`.
 
-1. Zainstaluj Steam Link z Google Play.
-2. Na komputerze uruchom Steam i włącz **Ustawienia → Remote Play**.
-3. Połącz telefon z Wi-Fi 5 GHz; komputer najlepiej przewodowo z routerem.
-4. W Steam Droid otwórz zakładkę **Połączenie** i uruchom Steam Link.
-5. Sparuj telefon z komputerem i wybierz grę w Steam Link.
+## Konfiguracja Local Engine
 
-## Import i eksport
+1. Otwórz zakładkę **Local Engine**.
+2. Sprawdź status Winlatora.
+3. Jeśli nie jest zainstalowany, otwórz oficjalne wydania: https://github.com/brunodev85/winlator/releases
+4. Zainstaluj runtime i uruchom go pierwszy raz, aby zakończył własną konfigurację.
+5. W Winlatorze utwórz kontener i skrót do legalnie posiadanej gry/aplikacji.
+6. W Steam Droid otwórz profil danej gry i zapisz wynik testu oraz notatki.
+7. Pamiętaj: Steam Droid przechowuje profil, ale nie zmienia ustawień kontenera.
 
-W zakładce **Biblioteka** użyj przycisków **EKSPORT** i **IMPORT**. Dane są przetwarzane lokalnie. Import pomija duplikaty i nie nadpisuje istniejących wpisów. Kopię zapasową przechowuj w bezpiecznym miejscu.
+## Kopie biblioteki
+
+W zakładce **Biblioteka** użyj przycisków **EKSPORT** i **IMPORT**. Kopia JSON zawiera również profil Local Engine. Import pomija duplikaty i nie nadpisuje istniejących wpisów.
 
 ## Dokumentacja
 
 - `docs/ARCHITECTURE.md` — architektura aplikacji.
 - `docs/GAME-LIBRARY.md` — katalog i profile gier.
-- `docs/GAME-METADATA.md` — metadane, grafiki, kopie JSON i migracja.
+- `docs/GAME-METADATA.md` — metadane, grafiki i kopie JSON.
+- `docs/LOCAL-ENGINE.md` — integracja Winlator i ograniczenia.
 - `.github/workflows/android.yml` — kompilacja CI i testy.
 
 ## Licencja
 
-Kod projektu jest udostępniany na licencji MIT. Zobacz [LICENSE](LICENSE).
+Kod Steam Droid jest udostępniany na licencji MIT. Zobacz [LICENSE](LICENSE). Winlator oraz pozostałe komponenty zewnętrzne zachowują własne licencje.

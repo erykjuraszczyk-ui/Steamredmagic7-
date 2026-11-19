@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [GameEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class SteamDroidDatabase : RoomDatabase() {
@@ -29,6 +29,21 @@ abstract class SteamDroidDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE games ADD COLUMN localCompatibility TEXT NOT NULL DEFAULT 'NOT_TESTED'"
+                )
+                database.execSQL(
+                    "ALTER TABLE games ADD COLUMN localRuntimePreset TEXT NOT NULL DEFAULT 'BALANCED'"
+                )
+                database.execSQL(
+                    "ALTER TABLE games ADD COLUMN localTestNotes TEXT NOT NULL DEFAULT ''"
+                )
+                database.execSQL("ALTER TABLE games ADD COLUMN localTestedAt INTEGER")
+            }
+        }
+
         @Volatile
         private var INSTANCE: SteamDroidDatabase? = null
 
@@ -39,7 +54,7 @@ abstract class SteamDroidDatabase : RoomDatabase() {
                     SteamDroidDatabase::class.java,
                     "steam_droid_library.db"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                     .also { INSTANCE = it }
             }

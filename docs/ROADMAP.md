@@ -8,38 +8,47 @@
 
 ## 0.2.0 — PC Connect Core (ukończona)
 - [x] Kontrola obecności Steam Link.
-- [x] Diagnostyka aktywnego transportu sieciowego i dostępu do internetu.
-- [x] Wykrywanie kontrolerów gamepad / joystick / D-pad.
+- [x] Diagnostyka sieci i wykrywanie kontrolerów.
 - [x] Skrót do ustawień Bluetooth.
 - [x] Pomyślny build debug APK.
 
 ## 0.3.0 — Game Library Core (ukończona)
 - [x] Lokalna baza Room/SQLite.
-- [x] Dodawanie i usuwanie wpisów.
-- [x] Steam App ID, notatki, ulubione, wyszukiwanie i filtry.
-- [x] Profile PC Streaming / Local Windows.
+- [x] Dodawanie, usuwanie, ulubione, wyszukiwanie i filtry.
+- [x] Steam App ID, notatki i profile uruchamiania.
 - [x] Walidacja danych i testy jednostkowe.
 - [x] Build APK i testy GitHub Actions.
 
-## 0.4.0 — Steam Metadata & Artwork Core (implementacja)
+## 0.4.0 — Steam Metadata & Artwork Core (ukończona)
 - [x] Ręczne pobieranie publicznych metadanych sklepu po Steam App ID.
-- [x] Okładki, krótki opis, gatunki, twórcy i data premiery.
+- [x] Okładki, krótki opis, gatunki i twórcy.
 - [x] Buforowanie obrazów Coil.
-- [x] Migracja Room 1 → 2 bez kasowania istniejących gier.
-- [x] Import i eksport JSON przez Android Storage Access Framework.
-- [x] Odrzucanie metadanych wpisów oznaczonych jako 18+.
-- [ ] Test ręczny importu/eksportu i migracji na REDMAGIC 7.
-- [ ] Weryfikacja zachowania endpointu Store przy ograniczeniach zapytań.
+- [x] Migracja Room 1 → 2.
+- [x] Import i eksport JSON.
+- [x] Build APK i testy GitHub Actions.
 
-## 0.5.0 — Local Runtime research
-- [ ] Prototyp integracji z zewnętrznym runtime (bez bundlowania cudzych binariów bez licencji).
-- [ ] Testy zgodności na REDMAGIC 7.
-- [ ] Profile per gra i raportowanie ograniczeń.
-- [ ] Jasny podział PC Streaming / Local Runtime.
+## 0.5.0 — Local Gaming Engine (implementacja)
+- [x] Wykrywanie standardowego pakietu Winlator `com.winlator`.
+- [x] Uruchamianie aplikacji Winlator lub otwarcie oficjalnych wydań.
+- [x] Osobny ekran Local Engine.
+- [x] Rejestr statusu ręcznego testu każdej gry.
+- [x] Preferencja profilu Box64 i notatka testowa.
+- [x] Migracja Room 2 → 3.
+- [x] Zachowanie profili w kopii JSON.
+- [x] Testy jednostkowe reguł profili.
+- [ ] Ręczne testy na REDMAGIC 7: wykrycie Winlatora, start runtime, aktualizacja Room.
+- [ ] Test osobnych tytułów i kontenerów; nie deklarować zgodności bez pomiarów.
+- [ ] Nie ma bezpośredniego API uruchamiania EXE ani konfiguracji kontenerów.
+
+## 0.6.0 — Launch Profiles
+- [ ] Badanie wspieranego, udokumentowanego interfejsu integracji runtime.
+- [ ] Bezpieczne przypinanie lokalnych skrótów do wpisów biblioteki, jeśli runtime to umożliwi.
+- [ ] Diagnostyka kontenera i raporty wydajności tylko z wiarygodnych danych.
+- [ ] Rozdzielenie metadanych Steam od lokalnie znalezionych aplikacji.
 
 ## 1.0.0 — Stable
 - [ ] Stabilna nawigacja i obsługa błędów.
-- [ ] Testy na Androidzie 13+.
-- [ ] Testy sieci, sterowania i cyklu życia aplikacji.
+- [ ] Testy na Androidzie 13+ i REDMAGIC 7.
+- [ ] Testy migracji bazy oraz kopii JSON.
 - [ ] Podpisany release APK / AAB.
 - [ ] Dokumentacja użytkownika i polityka prywatności.
