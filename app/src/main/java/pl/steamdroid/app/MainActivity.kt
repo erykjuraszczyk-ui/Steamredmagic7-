@@ -505,6 +505,14 @@ private fun InfoLine(label: String, value: String) {
     }
 }
 
+private fun openBluetoothSettings(context: Context) {
+    try {
+        context.startActivity(Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS))
+    } catch (_: ActivityNotFoundException) {
+        Toast.makeText(context, "Nie można otworzyć ustawień Bluetooth.", Toast.LENGTH_LONG).show()
+    }
+}
+
 private fun openSteamLink(context: Context) {
     val launchIntent = context.packageManager.getLaunchIntentForPackage(STEAM_LINK_PACKAGE)
     if (launchIntent != null) {

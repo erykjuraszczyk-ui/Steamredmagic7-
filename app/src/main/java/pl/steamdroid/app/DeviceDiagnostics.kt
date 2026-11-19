@@ -89,14 +89,14 @@ data class DeviceDiagnostics(
 
         private fun readControllers(): List<ControllerDiagnostics> {
             return InputDevice.getDeviceIds()
-                .mapNotNull(InputDevice::getDevice)
+                .mapNotNull { id -> InputDevice.getDevice(id) }
                 .filterNot { it.isVirtual }
                 .mapNotNull { device ->
-                    val hasGamepad = device.sources and InputDevice.SOURCE_GAMEPAD ==
+                    val hasGamepad = (device.sources and InputDevice.SOURCE_GAMEPAD) ==
                         InputDevice.SOURCE_GAMEPAD
-                    val hasJoystick = device.sources and InputDevice.SOURCE_JOYSTICK ==
+                    val hasJoystick = (device.sources and InputDevice.SOURCE_JOYSTICK) ==
                         InputDevice.SOURCE_JOYSTICK
-                    val hasDpad = device.sources and InputDevice.SOURCE_DPAD ==
+                    val hasDpad = (device.sources and InputDevice.SOURCE_DPAD) ==
                         InputDevice.SOURCE_DPAD
 
                     if (!hasGamepad && !hasJoystick && !hasDpad) {
